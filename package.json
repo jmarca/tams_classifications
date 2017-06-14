@@ -1,0 +1,35 @@
+{
+  "name": "tams_classifications",
+  "version": "1.0.0",
+  "description": "Access classification data from TAMS db",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "dependencies": {
+    "config_okay": "^1.0.0",
+    "psql_pooler": "^1.0.0"
+  },
+  "devDependencies": {
+    "tams_archive_tables": "file:../tams_archive_tables",
+    "tap": "^10.3.3"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmarca/tams_classifications.git"
+  },
+  "keywords": [
+    "CALVAD",
+    "TAMS"
+  ],
+  "author": "James E. Marca",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jmarca/tams_classifications/issues"
+  },
+  "homepage": "https://github.com/jmarca/tams_classifications#readme"
+}

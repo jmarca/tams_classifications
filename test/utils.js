@@ -144,7 +144,7 @@ function exec_create_tables(config){
     );'`
 
     const populate_statement = "'\\\copy public.vds_body_classification_predictions from '"+classifications_file+"';'"
-    console.log(populate_statement)
+    //console.log(populate_statement)
     const commandline = ["/usr/bin/psql",
                                 "-d", db,
                                 "-U", user,
@@ -157,7 +157,7 @@ function exec_create_tables(config){
           new Promise(function (resolve, reject) {
               // console.log('creating',create_commandline)
               exec(create_commandline,function(e,out,err){
-                  console.log('done creating')
+                  // console.log('done creating')
                   if(e !== null){
                       reject(e)
                   }
@@ -168,7 +168,7 @@ function exec_create_tables(config){
               return new Promise(function(resolve,reject){
                   // console.log('created, now populating',popu_commandline)
                   exec(popu_commandline,function(e,out,err){
-                      console.log('done populating')
+                      // console.log('done populating')
                       if(e !== null){
                           reject(e)
                       }
@@ -184,7 +184,7 @@ function exec_create_tables(config){
                         lookups_creation,
                         archives_creation])
         .then(r =>{
-            console.log('done create, populate')
+            //console.log('done create, populate')
         })
 
 }
@@ -201,7 +201,7 @@ function drop_tables(client){
         return client.query('drop table '+table+' cascade;')
     })
                       )
-        .then(results =>{console.log('done dropping')})
+        //.then(results =>{console.log('done dropping')})
         .catch( e =>{
             console.log('error deleting tables',e)
             throw e
