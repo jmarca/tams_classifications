@@ -117,9 +117,8 @@ const test_query = async (_config,pool) => {
             const test_promises = []
             dmap.forEach( (value,key)=>{
                 const cf = Object.assign({},_config)
-                cf.signaturearchives={'archive_table':key
-                                      ,'starttime':value.mintime
-                                      ,'endtime':value.maxtime}
+                // this time do not do starttime, endtime
+                cf.signaturearchives={'archive_table':key}
                 cf.detstaid = detstaid
                 test_promises.push( get_classifications(cf,client) )
                 return null
