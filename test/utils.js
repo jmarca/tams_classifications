@@ -27,6 +27,7 @@ function cleanup_db(config){
          "-c", s].join(' ')
     })
     return Promise.all(commandlines.map(c =>{
+        console.log(c)
         return new Promise((resolve, reject)=>{
             exec(c,function(e,stdout,stderr){
                 if(e){
