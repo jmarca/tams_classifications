@@ -1,6 +1,10 @@
-const get_classifications = require('../lib/get_classifications').get_classifications
+const classifier = require('../lib/get_classifications')
+const get_classifications = classifier.get_classifications
+const get_coarse_classifications = classifier.get_coarse_classifications
 const get_pool = require('psql_pooler').get_pool
-const get_tables = require('tams_archive_tables').get_tables
+const archive_tables = require('tams_archive_tables')
+const get_tables = archive_tables.get_tables
+const get_tables_for_detector = archive_tables.get_tables_for_detector
 
 const tap = require('tap')
 
@@ -15,7 +19,7 @@ const create_tables =utils.exec_create_tables
 const drop_tables = utils.drop_tables
 
 
-tap.plan(4)
+tap.plan(6)
 
 tap.test('get_trip_request function exists',function (t) {
     t.plan(1)
@@ -50,7 +54,6 @@ const test_query = async (_config,pool) => {
             task.signaturearchives.forEach( (tables_map,detectorid)=>{
                 // tables_map is a map of tables
                 // console.log(detectorid,tables_map)
-                //if(detectorid != 6002) return null
                 t.test('detector id subtest',async (tt) =>{
                     const test_promises = []
                     tables_map.forEach( (value,key)=>{
@@ -112,6 +115,166 @@ const test_query = async (_config,pool) => {
 
     try {
         await tap.test('just one detector now',async function(t){
+            let config = Object.assign({},_config)
+            const detstaid = 6002
+            config.detstaid = detstaid
+            // while I could just do:
+            //  const dmap = task.signaturearchives.get(detstaid)
+            // I want to use get_tables function
+            const dmap = (get_tables_for_detector(config,client))
+                  .signaturearchives.get(detstaid)
+            const test_promises = []
+            dmap.forEach( (value,key)=>{
+                const cf = Object.assign({},_config)
+                // this time do not do starttime, endtime
+                cf.signaturearchives={'archive_table':key}
+                cf.detstaid = detstaid
+                test_promises.push( get_classifications(cf,client) )
+                return null
+            })
+            return Promise.all(test_promises)
+                .then( results =>{
+                    let collate = new Map()
+                    if(results.length > 1){
+                        // concatentate
+                        results.forEach( r => {
+                            collate = new Map ( Array.from(collate)
+                                                .concat(Array.from(r.classification)) )
+                            return null
+                        })
+                    }else{
+                        collate = results[0].classification
+                    }
+                    return collate
+                })
+                .then( collated =>{
+                    t.ok(collated.size > 0,'there is something there')
+                    const expected_size = 20
+                    t.is(collated.size,expected_size,'got expected number of classification results')
+                    // console.log(collated)
+                    const expected_keys =
+                          ['sig_id'
+                           ,'detstaid'
+                           ,'lane'
+                           ,'lane_dir'
+                           ,'timestamp_full'
+                           ,'vehicle_count'
+                           ,'bc_name'
+                           ,'bc_id'
+                           ,'bc_group'
+                           ,'bcg_id'].sort()
+
+                    collated.forEach( (v,k)=>{
+                        t.same((Object.keys(v)).sort(),expected_keys
+                               ,'got expected keys for entry')
+                        return null
+                    })
+                    t.end()
+                })
+
+                .catch( e =>{
+                    console.log('some sort of error ',e)
+                    throw e
+                })
+        })
+    }
+    catch (e){
+        throw (e)
+    }finally{
+        await client.query("ROLLBACK;")
+        await client.release()
+    }
+
+    // now just a small period of time, not all time
+    // along with just one detector, 6002
+    client = await pool.connect()
+    await client.query("BEGIN;")
+    // use the same task result from get tables as before
+
+    try {
+        await tap.test('just one detector now',async function(t){
+            const detstaid = 6002
+            const mintime = '2017-01-31 20:00'
+            const maxtime = '2017-01-31 23:00'
+            let config = Object.assign({},_config)
+            config.detstaid = detstaid
+            config.mintime = mintime
+            config.maxtime = maxtime
+            // while I could just do:
+            //  const dmap = task.signaturearchives.get(detstaid)
+            // I want to use get_tables function
+            const dmap = (get_tables_for_detector(config,client))
+                  .signaturearchives.get(detstaid)
+            const test_promises = []
+            dmap.forEach( (value,key)=>{
+                const cf = Object.assign({},_config)
+                // this time do not do starttime, endtime
+                cf.signaturearchives={'archive_table':key}
+                cf.detstaid = detstaid
+                test_promises.push( get_classifications(cf,client) )
+                return null
+            })
+            return Promise.all(test_promises)
+                .then( results =>{
+                    let collate = new Map()
+                    if(results.length > 1){
+                        // concatentate
+                        results.forEach( r => {
+                            collate = new Map ( Array.from(collate)
+                                                .concat(Array.from(r.classification)) )
+                            return null
+                        })
+                    }else{
+                        collate = results[0].classification
+                    }
+                    return collate
+                })
+                .then( collated =>{
+                    t.ok(collated.size > 0,'there is something there')
+                    const expected_size = 20
+                    t.is(collated.size,expected_size,'got expected number of classification results')
+                    // console.log(collated)
+                    const expected_keys =
+                          ['sig_id'
+                           ,'detstaid'
+                           ,'lane'
+                           ,'lane_dir'
+                           ,'timestamp_full'
+                           ,'vehicle_count'
+                           ,'bc_name'
+                           ,'bc_id'
+                           ,'bc_group'
+                           ,'bcg_id'].sort()
+
+                    collated.forEach( (v,k)=>{
+                        t.same((Object.keys(v)).sort(),expected_keys
+                               ,'got expected keys for entry')
+                        return null
+                    })
+                    t.end()
+                })
+
+                .catch( e =>{
+                    console.log('some sort of error ',e)
+                    throw e
+                })
+        })
+    }
+    catch (e){
+        throw (e)
+    }finally{
+        await client.query("ROLLBACK;")
+        await client.release()
+    }
+
+    // now test coarse classifications
+    // now just do one detector, 6002
+    client = await pool.connect()
+    await client.query("BEGIN;")
+    // use the same task result from get tables as before
+
+    try {
+        await tap.test('just one detector now',async function(t){
             const detstaid = 6002
             const dmap = task.signaturearchives.get(detstaid)
             const test_promises = []
@@ -120,7 +283,7 @@ const test_query = async (_config,pool) => {
                 // this time do not do starttime, endtime
                 cf.signaturearchives={'archive_table':key}
                 cf.detstaid = detstaid
-                test_promises.push( get_classifications(cf,client) )
+                test_promises.push( get_coarse_classifications(cf,client) )
                 return null
             })
             return Promise.all(test_promises)

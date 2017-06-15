@@ -3,6 +3,44 @@ const datafile_dir = process.cwd()+'/sql/'
 const classifications_file = datafile_dir+'classifications_signatures.sql'
 const body_class_file = datafile_dir+'lookups.vds_body_class_lookup_data.sql'
 
+
+
+function cleanup_db(config){
+    const psql_opts = config.postgresql
+    const host = psql_opts.host
+    const user = psql_opts.username
+    // const pass = psql_opts.password
+    const port = psql_opts.port
+    const db   = psql_opts.db
+    const cleanups = [
+        "'drop schema if exists archive cascade;'"
+        ,"'create schema archive;'"
+        ,"'drop table if exists public.vds_body_classification_predictions;'"
+        ,"'drop table if exists lookups.vds_body_class_lookup;'"
+    ]
+    const commandlines = cleanups.map( s =>{
+        ["/usr/bin/psql",
+         "-d", db,
+         "-U", user,
+         "-h", host,
+         "-p", port,
+         "-c", s].join(' ')
+    })
+    return Promise.all(commandlines.map(c =>{
+        return new Promise((resolve, reject)=>{
+            exec(c,function(e,stdout,stderr){
+                if(e){
+                    reject(e)
+                }
+                resolve([stdout,stderr])
+                return null
+            })
+            return null
+        })
+    }))
+
+}
+
 function exec_create_archive_table(tablename,file,config){
     const psql_opts = config.postgresql
     const host = psql_opts.host
@@ -119,7 +157,6 @@ function exec_lookups_body_class_table(config){
     })
 }
 
-
 function exec_create_tables(config){
     const psql_opts = config.postgresql
     const host = psql_opts.host
@@ -208,5 +245,17 @@ function drop_tables(client){
         })
 }
 
-exports.exec_create_tables = exec_create_tables
+
+function clean_then_create(config){
+    return cleanup_db(config)
+        .then(function(r){
+            //console.log('I cleaned',r)
+            return exec_create_tables(config)
+        })
+        .catch(function(e){
+            if(e) console.log(e)
+        })
+}
+
+exports.exec_create_tables = clean_then_create
 exports.drop_tables = drop_tables
