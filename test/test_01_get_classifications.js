@@ -121,8 +121,8 @@ const test_query = async (_config,pool) => {
             // while I could just do:
             //  const dmap = task.signaturearchives.get(detstaid)
             // I want to use get_tables function
-            const dmap = (get_tables_for_detector(config,client))
-                  .signaturearchives.get(detstaid)
+            const newtask = await get_tables_for_detector(config,client)
+            const dmap = newtask.signaturearchives.get(detstaid)
             const test_promises = []
             dmap.forEach( (value,key)=>{
                 const cf = Object.assign({},_config)
@@ -203,8 +203,8 @@ const test_query = async (_config,pool) => {
             // while I could just do:
             //  const dmap = task.signaturearchives.get(detstaid)
             // I want to use get_tables function
-            const dmap = (get_tables_for_detector(config,client))
-                  .signaturearchives.get(detstaid)
+            const newtask = await get_tables_for_detector(config,client)
+            const dmap = newtask.signaturearchives.get(detstaid)
             const test_promises = []
             dmap.forEach( (value,key)=>{
                 const cf = Object.assign({},_config)
@@ -231,7 +231,7 @@ const test_query = async (_config,pool) => {
                 })
                 .then( collated =>{
                     t.ok(collated.size > 0,'there is something there')
-                    const expected_size = 20
+                    const expected_size = 10
                     t.is(collated.size,expected_size,'got expected number of classification results')
                     // console.log(collated)
                     const expected_keys =
