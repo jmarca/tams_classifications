@@ -19,12 +19,12 @@ function cleanup_db(config){
         ,"'drop table if exists lookups.vds_body_class_lookup;'"
     ]
     const commandlines = cleanups.map( s =>{
-        ["/usr/bin/psql",
-         "-d", db,
-         "-U", user,
-         "-h", host,
-         "-p", port,
-         "-c", s].join(' ')
+        return ["/usr/bin/psql",
+                "-d", db,
+                "-U", user,
+                "-h", host,
+                "-p", port,
+                "-c", s].join(' ')
     })
     return Promise.all(commandlines.map(c =>{
         console.log(c)
