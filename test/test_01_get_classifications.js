@@ -31,9 +31,16 @@ const test_query = async (_config,pool) => {
 
     await tap.test('run query without client',async function(t) {
         let config = Object.assign({},_config)
-        t.plan(1)
+        t.plan(2)
         try{
             await get_classifications(config)
+            t.fail('should not succeed without client')
+            t.end()
+        }catch (query_error){
+            t.match(query_error,/client required/,'should fail query without client passed in')
+        }
+        try{
+            await get_coarse_classifications(config)
             t.fail('should not succeed without client')
             t.end()
         }catch (query_error){
@@ -316,7 +323,8 @@ const test_query = async (_config,pool) => {
                            ,'bc_name'
                            ,'bc_id'
                            ,'bc_group'
-                           ,'bcg_id'].sort()
+                           ,'bcg_id'
+                           ,'calvad_class'].sort()
 
                     collated.forEach( (v,k)=>{
                         t.same((Object.keys(v)).sort(),expected_keys
