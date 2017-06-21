@@ -7,7 +7,9 @@
     "lib": "lib",
     "test": "test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "rw": "^1.3.3"
+  },
   "devDependencies": {
     "config_okay": "^1.0.0",
     "psql_pooler": "github:jmarca/psql_pooler",
