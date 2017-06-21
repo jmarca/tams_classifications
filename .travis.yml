@@ -25,6 +25,10 @@ before_script:
   - psql -c 'create schema archive;' -U testu -d atestdb
   - psql -c 'create schema lookups;' -U testu -d atestdb
   - echo "{\"postgresql\":{\"host\":\"127.0.0.1\",\"port\":5432,\"username\":\"testu\",\"signatures_db\":\"atestdb\"}}" > test.config.json && chmod 0600 test.config.json
+  - echo "{\"postgresql\":{\"host\":\"127.0.0.1\",\"port\":5432,\"username\":\"testu\",\"signatures_db\":\"atestdb\"}}" > app1.test.config.json && chmod 0600 app1.test.config.json
+  - echo "{\"postgresql\":{\"host\":\"127.0.0.1\",\"port\":5432,\"username\":\"testu\",\"signatures_db\":\"atestdb\"},"detstaid",7003}" > app2.test.config.json && chmod 0600 app2.test.config.json
+  - mkdir data
+  - mkdir data2
 
 after_success:
   - npm install codeclimate-test-reporter

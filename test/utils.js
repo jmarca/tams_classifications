@@ -1,4 +1,4 @@
-var exec = require('child_process').exec
+const exec = require('child_process').exec
 const datafile_dir = process.cwd()+'/sql/'
 const classifications_file = datafile_dir+'classifications_signatures.sql'
 const body_class_file = datafile_dir+'lookups.vds_body_class_lookup_data.sql'
