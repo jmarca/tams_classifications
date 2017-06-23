@@ -20,6 +20,7 @@ const drop_tables = utils.drop_tables
 
 const run_test = async () =>{
 
+    console.log('first test')
     await tap.test('command should work',async function(t){
 
         return new Promise( function (resolve,reject){
@@ -30,7 +31,7 @@ const run_test = async () =>{
                    ,"--config"
                    ,"app1.test.config.json",
                   ].join(' ')
-
+            console.log(commandline)
             try {
                 exec(commandline,function(e,stdout,stderr){
                     console.log('the end')
@@ -38,7 +39,7 @@ const run_test = async () =>{
                     console.log(stdout)
                     console.log(stderr)
                     if(e){
-                        tap.fail(e)
+                        t.fail(e)
                         return reject(e)
                     }
                     t.pass('test passed with '+stdout+'\n'+stderr)
@@ -72,7 +73,7 @@ const run_test = async () =>{
                     console.log(stdout)
                     console.log(stderr)
                     if(e){
-                        tap.fail(e)
+                        t.fail(e)
                         return reject(e)
                     }
                     t.pass('test passed with '+stdout+'\n'+stderr)
@@ -106,7 +107,7 @@ const run_test = async () =>{
                     console.log(stdout)
                     console.log(stderr)
                     if(e){
-                        tap.fail(e)
+                        t.fail(e)
                         return reject(e)
                     }
                     t.pass('test passed with '+stdout+'\n'+stderr)
@@ -133,7 +134,11 @@ config_okay(config_file)
         _config = config
         const tables = await create_tables(config)
         console.log('done create tables')
-        return await run_test()
+        try {
+            await run_test()
+        }catch (err){
+            console.log(err)
+        }
     })
     .then( async (r)=>{
         console.log('in the then with r=',r)
@@ -151,8 +156,8 @@ config_okay(config_file)
         }
 
     })
-      .catch(async (err) =>{
-          console.log('external catch statement triggered')
-          console.log(err)
-          throw new Error(err)
-      })
+    .catch(async (err) =>{
+        console.log('external catch statement triggered')
+        console.log(err)
+        throw new Error(err)
+    })
