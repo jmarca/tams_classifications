@@ -77,18 +77,16 @@ async function inner_loop(value,key,detectorid,config){
     // ,'starttime':value.mintime
     // ,'endtime':value.maxtime}
     cf.detstaid = detectorid
-    const r = await get_coarse_classifications(cf,qclient)
+    const rows = await get_coarse_classifications(cf,qclient)
     qclient.release()
     console.log(Date.now()+': done query for table: '+key+', detector id: '+detectorid)
-    // console.log(r)
-    const classification = r.classification
+    // rows is rows from db
     var dumpArray = [keys]
 
-    classification.forEach( (v,k) =>{
+    rows.forEach( (r) =>{
 
         const recArray = keys.map(function(key,i) {
-            //console.log(key,v[key])
-            return v[key]
+            return r[key]
         })
         dumpArray = dumpArray.concat([recArray])
         return null
