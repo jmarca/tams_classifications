@@ -4,45 +4,42 @@ const classifications_file = datafile_dir+'classifications_signatures.sql'
 const body_class_file = datafile_dir+'lookups.vds_body_class_lookup_data.sql'
 
 
-
-function cleanup_db(config){
+async function command(c,config){
     const psql_opts = config.postgresql
     const host = psql_opts.host
     const user = psql_opts.username
     // const pass = psql_opts.password
     const port = psql_opts.port
     const db   = psql_opts.db
-    const cleanups = [
-        "'drop schema if exists archive cascade;'"
-        ,"'create schema archive;'"
-        ,"'drop table if exists public.vds_body_classification_predictions;'"
-        ,"'drop table if exists lookups.vds_body_class_lookup;'"
-    ]
-    const commandlines = cleanups.map( s =>{
-        return ["/usr/bin/psql",
-                "-d", db,
-                "-U", user,
-                "-h", host,
-                "-p", port,
-                "-c", s].join(' ')
-    })
-    return Promise.all(commandlines.map(c =>{
-        console.log(c)
-        return new Promise((resolve, reject)=>{
-            exec(c,function(e,stdout,stderr){
-                if(e){
-                    reject(e)
-                }
-                resolve([stdout,stderr])
-                return null
-            })
+    return new Promise((resolve, reject)=>{
+        const commandline =  ["/usr/bin/psql",
+                              "-d", db,
+                              "-U", user,
+                              "-h", host,
+                              "-p", port,
+                              "-c", c ].join(' ')
+        exec(commandline,function(e,stdout,stderr){
+            if(e){
+                reject(e)
+            }
+            resolve([stdout,stderr])
             return null
         })
-    }))
+        return null
+    })
 
 }
 
-function exec_create_archive_table(tablename,file,config){
+async function cleanup_db(config){
+    await command("'drop schema if exists archive cascade;'",config)
+    await command("'create schema archive;'",config)
+    await command("'drop table if exists public.vds_body_classification_predictions;'",config)
+    await command("'drop table if exists lookups.vds_body_class_lookup;'",config)
+
+    return null
+}
+
+async function exec_create_archive_table(tablename,file,config){
     const psql_opts = config.postgresql
     const host = psql_opts.host
     const user = psql_opts.username
@@ -73,52 +70,14 @@ function exec_create_archive_table(tablename,file,config){
     );'`
     const populate_statement = "'\\\copy archive."+tablename+" from '"+file+"';'"
     // console.log(populate_statement)
-    return new Promise(function (resolve, reject) {
-        let commandline = ["/usr/bin/psql",
-          "-d", db,
-          "-U", user,
-          "-h", host,
-          "-p", port,
-          "-c", create_statement]
-        // console.log(commandline)
+    const create_s = await command(create_statement,config)
+    const pop_s = await command(populate_statement,config)
 
-        exec(commandline.join(' '),function(e,out,err){
-            //console.log('done create statement',out,err)
-            if(e !== null){
-                reject(e)
-            }
-            resolve(tablename)
-        })
-        return null
-    }).then(function(t){
-        //console.log('done creating with ',t)
-        return new Promise(function(resolve,reject){
-            let commandline = ["/usr/bin/psql",
-          "-d", db,
-          "-U", user,
-          "-h", host,
-          "-p", port,
-          "-c", populate_statement]
-            // console.log(commandline)
-
-            exec(commandline.join(' '),function(e,out,err){
-                //console.log('done populate statement')
-                if(e !== null){
-                    reject(e)
-                }
-                resolve(tablename)
-            })
-            return null
-        })
-    }).catch( e =>{
-        console.log('oops',e)
-        throw e
-    })
-
+    return tablename
 }
 
 
-function create_archive_tables(config){
+async function create_archive_tables(config){
     let names = ['signaturearchive_1'
                  ,'signaturearchive_2'
                  ,'signaturearchive_3'
@@ -133,7 +92,7 @@ function create_archive_tables(config){
 
 
 
-function exec_lookups_body_class_table(config){
+async function exec_lookups_body_class_table(config){
     const psql_opts = config.postgresql
     const host = psql_opts.host
     const user = psql_opts.username
@@ -158,16 +117,10 @@ function exec_lookups_body_class_table(config){
     })
 }
 
-function exec_create_tables(config){
-    const psql_opts = config.postgresql
-    const host = psql_opts.host
-    const user = psql_opts.username
-    // const pass = psql_opts.password
-    const port = psql_opts.port
-    const db   = psql_opts.db
+async function exec_create_tables(config){
 
-    const archives_creation = create_archive_tables(config)
-    const lookups_creation = exec_lookups_body_class_table(config)
+    const archives_creation = await create_archive_tables(config)
+    const lookups_creation = await exec_lookups_body_class_table(config)
 
     const create_statement = `\
     'CREATE TABLE public.vds_body_classification_predictions (\
@@ -182,52 +135,15 @@ function exec_create_tables(config){
     );'`
 
     const populate_statement = "'\\\copy public.vds_body_classification_predictions from '"+classifications_file+"';'"
-    //console.log(populate_statement)
-    const commandline = ["/usr/bin/psql",
-                                "-d", db,
-                                "-U", user,
-                                "-h", host,
-                         "-p", port]
-    const create_commandline = commandline.join(' ')+" -c "+ create_statement
-    const popu_commandline = commandline.join(' ')+" -c "+ populate_statement
 
-    const classifications_creation =
-          new Promise(function (resolve, reject) {
-              // console.log('creating',create_commandline)
-              exec(create_commandline,function(e,out,err){
-                  // console.log('done creating')
-                  if(e !== null){
-                      reject(e)
-                  }
-                  resolve('create classif')
-              })
-              return null
-          }).then(function(t){
-              return new Promise(function(resolve,reject){
-                  // console.log('created, now populating',popu_commandline)
-                  exec(popu_commandline,function(e,out,err){
-                      // console.log('done populating')
-                      if(e !== null){
-                          reject(e)
-                      }
-                      resolve('populate classif')
-                  })
-                  return null
-              })
-          }).catch( e =>{
-              console.log('oops',e)
-              throw e
-          })
-    return Promise.all([classifications_creation,
-                        lookups_creation,
-                        archives_creation])
-        .then(r =>{
-            //console.log('done create, populate')
-        })
+    const create_commandline = await command(create_statement,config)
+    const popu_commandline = await command(populate_statement,config)
+
+    return null
 
 }
 
-function drop_tables(client){
+async function drop_tables(client){
     const tables = ['archive.signaturearchive_1'
                     ,'archive.signaturearchive_2'
                     ,'archive.signaturearchive_3'
@@ -247,12 +163,10 @@ function drop_tables(client){
 }
 
 
-function clean_then_create(config){
-    return cleanup_db(config)
-        .then(function(r){
-            //console.log('I cleaned',r)
-            return exec_create_tables(config)
-        })
+async function clean_then_create(config){
+    await cleanup_db(config)
+    return exec_create_tables(config)
+
         .catch(function(e){
             if(e) console.log(e)
         })

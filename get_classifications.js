@@ -35,6 +35,8 @@ const config_file = rootdir+'/'+commander.config
 const config_okay = require('config_okay')
 const output_path = rootdir+'/'+commander.directory
 
+// console.log(config_file)
+
 let pool
 const keys = [
     'sig_id'
@@ -50,12 +52,77 @@ const keys = [
     ,'calvad_class'
 ]
 
+function write_data(detectorid,value,dumpArray){
+    return new Promise( (resolve,reject) => {
+        const filename = output_path+'/'+ detectorid+'_'+value.mintime+'_'+value.maxtime+'.json'
+        rw.writeFile(filename
+                     ,d3csv.csvFormatRows(dumpArray)
+                     ,function(e){
+                         if(e){
+                             console.log(e)
+                             return reject(e)
+                         }
+                         return resolve(filename)
+                     }
+                    )
+    })
+}
+
+async function inner_loop(value,key,detectorid,config){
+    const qclient = await pool.connect()
+    console.log(Date.now()+': got client for table: '+key+', detector id: '+detectorid)
+
+    const cf = Object.assign({},config)
+    cf.signaturearchives={'archive_table':key}
+    // ,'starttime':value.mintime
+    // ,'endtime':value.maxtime}
+    cf.detstaid = detectorid
+    const r = await get_coarse_classifications(cf,qclient)
+    qclient.release()
+    console.log(Date.now()+': done query for table: '+key+', detector id: '+detectorid)
+    // console.log(r)
+    const classification = r.classification
+    var dumpArray = [keys]
+
+    classification.forEach( (v,k) =>{
+
+        const recArray = keys.map(function(key,i) {
+            //console.log(key,v[key])
+            return v[key]
+        })
+        dumpArray = dumpArray.concat([recArray])
+        return null
+
+    })
+    //console.log('dumparray is ',dumpArray)
+
+    const filename = await write_data(detectorid,value,dumpArray)
+    return filename
+}
+
+async function loop (tables_map, detectorid, config){
+    // console.log(tables_map.size)
+    const jobs = []
+
+
+    for (const key of tables_map.keys()) {
+        const value = tables_map.get(key)
+
+        const blah = await inner_loop(value,key,detectorid,config)
+        jobs.push(blah)
+    }
+
+    return jobs
+
+
+}
+
 config_okay(config_file)
 
     .then( async (config) => {
         // add the database name for pool
         config.postgresql.db = config.postgresql.signatures_db
-
+        // console.log(config)
         try {
             pool = await get_pool(config)
 
@@ -67,63 +134,20 @@ config_okay(config_file)
                 task = await get_tables(config,client)
             }
             // console.log(task)
-            client.release()
+            await client.release()
             const test_promises = []
-            task.signaturearchives.forEach( (tables_map,detectorid)=>{
-                tables_map.forEach( async (value,key)=>{
-                    const qclient = await pool.connect()
-
-                    const cf = Object.assign({},config)
-                    cf.signaturearchives={'archive_table':key
-                                          ,'starttime':value.mintime
-                                          ,'endtime':value.maxtime}
-                    cf.detstaid = detectorid
-                    const r = await get_coarse_classifications(cf,qclient)
-                    qclient.release()
-                    // console.log(r)
-                    const classification = r.classification
-                    var dumpArray = [keys]
-
-                    classification.forEach( (v,k) =>{
-
-                        const recArray = keys.map(function(key,i) {
-                            //console.log(key,v[key])
-                            return v[key]
-                        })
-                        dumpArray = dumpArray.concat([recArray])
-                        return null
-                    })
-                    // console.log('dumparray is ',dumpArray)
-                    test_promises.push(
-                        new Promise( (resolve,reject) => {
-                            rw.writeFile(output_path+'/'+ detectorid+'_'+value.mintime+'_'+value.maxtime+'.json'
-                                         ,d3csv.csvFormatRows(dumpArray)
-                                         ,function(e){
-                                             if(e) return reject(e)
-                                             return resolve()
-                                         }
-                                        )
-                        }).catch( async (e) => {
-                            console.log('caught promise error?',e)
-                            await pool.end()
-                            throw (e)
-                        })
-                    )
-                    return null
-                })
-                return null
-            })
+            console.log('looping'+new Date())
 
 
-            Promise.all(test_promises)
-                .then( r => {
-                    // console.log('done writing')
-                    return null
-                })
-                .catch( e => {
-                    console.log('error writing')
-                    console.log(e)
-                })
+            for (const detectorid of task.signaturearchives.keys()) {
+                const tables_map = task.signaturearchives.get(detectorid)
+
+                console.log('outer loop, ',detectorid)
+                const blarg = await loop(tables_map,detectorid,config)
+                console.log( blarg, 'outer loop is done for ',detectorid)
+            }
+            // await Promise.all(test_promises)
+            console.log('done')
 
         }catch(e){
             console.log('handling error',e)
