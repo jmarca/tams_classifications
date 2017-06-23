@@ -75,24 +75,14 @@ const test_query = async (_config,pool) => {
 
                     return Promise.all(test_promises)
                         .then( results =>{
-                            let collate = new Map()
-                            if(results.length > 1){
-                                // concatentate
-                                results.forEach( r => {
-                                    collate = new Map ( Array.from(collate)
-                                                        .concat(Array.from(r.classification)) )
-                                    return null
-                                })
-                            }else{
-                                collate = results[0].classification
-                            }
-                            return collate
-                        })
-                        .then( collated =>{
-                            tt.ok(collated.size > 0,'there is something there')
-                            const expected_size = detectorid == 6002 ? 20 : 10
-                            tt.is(collated.size,expected_size,'got expected number of classification results')
-                            // console.log(collated)
+                            // console.log(results)
+                            const result_size =  detectorid == 6002 ? 2 : 1
+                            const expected_size = 10
+                            tt.is(results.length,result_size,'got expected # db table returns')
+                            results.forEach(result =>{
+                                tt.ok(result.length > 0,'there is something there')
+                                tt.is(result.length,expected_size,'got expected number of classification results')
+                            })
                             return tt.end()
                         })
                         .catch( e =>{
@@ -141,23 +131,19 @@ const test_query = async (_config,pool) => {
             })
             return Promise.all(test_promises)
                 .then( results =>{
-                    let collate = new Map()
+                    let collate = results[0]
                     if(results.length > 1){
                         // concatentate
-                        results.forEach( r => {
-                            collate = new Map ( Array.from(collate)
-                                                .concat(Array.from(r.classification)) )
-                            return null
-                        })
-                    }else{
-                        collate = results[0].classification
+                        collate = results.reduce( (acc,val)=>{
+                            return acc.concat(val)
+                        },[])
                     }
                     return collate
                 })
                 .then( collated =>{
-                    t.ok(collated.size > 0,'there is something there')
+                    t.ok(collated.length > 0,'there is something there')
                     const expected_size = 20
-                    t.is(collated.size,expected_size,'got expected number of classification results')
+                    t.is(collated.length,expected_size,'got expected number of classification results')
                     // console.log(collated)
                     const expected_keys =
                           ['sig_id'
@@ -223,23 +209,19 @@ const test_query = async (_config,pool) => {
             })
             return Promise.all(test_promises)
                 .then( results =>{
-                    let collate = new Map()
+                    let collate = results[0]
                     if(results.length > 1){
                         // concatentate
-                        results.forEach( r => {
-                            collate = new Map ( Array.from(collate)
-                                                .concat(Array.from(r.classification)) )
-                            return null
-                        })
-                    }else{
-                        collate = results[0].classification
+                        collate = results.reduce( (acc,val)=>{
+                            return acc.concat(val)
+                        },[])
                     }
                     return collate
                 })
                 .then( collated =>{
-                    t.ok(collated.size > 0,'there is something there')
+                    t.ok(collated.length > 0,'there is something there')
                     const expected_size = 10
-                    t.is(collated.size,expected_size,'got expected number of classification results')
+                    t.is(collated.length,expected_size,'got expected number of classification results')
                     // console.log(collated)
                     const expected_keys =
                           ['sig_id'
@@ -295,23 +277,19 @@ const test_query = async (_config,pool) => {
             })
             return Promise.all(test_promises)
                 .then( results =>{
-                    let collate = new Map()
+                    let collate = results[0]
                     if(results.length > 1){
                         // concatentate
-                        results.forEach( r => {
-                            collate = new Map ( Array.from(collate)
-                                                .concat(Array.from(r.classification)) )
-                            return null
-                        })
-                    }else{
-                        collate = results[0].classification
+                        collate = results.reduce( (acc,val)=>{
+                            return acc.concat(val)
+                        },[])
                     }
                     return collate
                 })
                 .then( collated =>{
-                    t.ok(collated.size > 0,'there is something there')
+                    t.ok(collated.length > 0,'there is something there')
                     const expected_size = 20
-                    t.is(collated.size,expected_size,'got expected number of classification results')
+                    t.is(collated.length,expected_size,'got expected number of classification results')
                     // console.log(collated)
                     const expected_keys =
                           ['sig_id'
