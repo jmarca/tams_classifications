@@ -54,7 +54,7 @@ const keys = [
 
 function write_data(detectorid,value,dumpArray){
     return new Promise( (resolve,reject) => {
-        const filename = output_path+'/'+ detectorid+'_'+value.mintime+'_'+value.maxtime+'.json'
+        const filename = output_path+'/'+ detectorid+'_'+value.mintime+'_'+value.maxtime+'.csv'
         rw.writeFile(filename
                      ,d3csv.csvFormatRows(dumpArray)
                      ,function(e){
