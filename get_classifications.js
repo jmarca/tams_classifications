@@ -42,20 +42,6 @@ const output_path = rootdir+'/'+commander.directory
 // console.log(config_file)
 
 let pool
-const keys = [
-    'sig_id'
-    ,'detstaid'
-    ,'lane'
-    ,'lane_dir'
-    ,'timestamp_full'
-    ,'vehicle_count'
-    ,'bc_name'
-    ,'bc_id'
-    ,'bc_group'
-    ,'bcg_id'
-    ,'calvad_class'
-]
-
 const through = require('through2')
 
 
