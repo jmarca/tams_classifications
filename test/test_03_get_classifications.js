@@ -87,7 +87,7 @@ const run_test = async () =>{
 
     })
 
-    await tap.test('command should work',async function(t){
+    await tap.test('command should fail, yes, we have no bananas',async function(t){
 
         return new Promise( function (resolve,reject){
 
@@ -102,21 +102,21 @@ const run_test = async () =>{
 
             try {
                 exec(commandline,function(e,stdout,stderr){
-                    console.log('the end')
-                    console.log(e)
-                    console.log(stdout)
-                    console.log(stderr)
+                    // console.log('the end')
+                    //console.log(e)
+                    //console.log(stdout)
+                    //console.log(stderr)
                     if(e){
-                        t.fail(e)
-                        return reject(e)
+                        t.pass(e)
+                        t.end()
+                        resolve(e)
                     }
-                    t.pass('test passed with '+stdout+'\n'+stderr)
-                    t.end()
-                    return resolve(e)
+                    reject(e)
                 })
             }catch(e){
                 console.log('caught',e)
             }
+            return null
         })
 
     })
