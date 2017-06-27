@@ -58,10 +58,30 @@ const keys = [
 
 const through = require('through2')
 
+const done_detectors = [
 
+10001,
+10007,
+1001,
+107,
+109,
+11005,
+11009,
+11011,
+12003,
+2,
+27,
+4001,
+7005,
+7010
+
+    ]
 async function inner_loop(value,key,detectorid,config){
     console.log(Date.now()+': got client for table: '+key+', detector id: '+detectorid)
 
+    if (done_detectors.indexOf(detectorid) > -1){
+        return null
+    }
     const cf = Object.assign({},config)
     cf.signaturearchives={'archive_table':key}
     // ,'starttime':value.mintime
