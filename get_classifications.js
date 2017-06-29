@@ -61,21 +61,25 @@ const through = require('through2')
 const done_detectors = [
 
 10001,
-10007,
-1001,
-107,
-109,
-11005,
-11009,
-11011,
-12003,
-2,
-27,
-4001,
-7005,
-7010
+    10007,
+    1001,
+    107,
+    109,
+    11005,
+    11009,
+    11011,
+    12003,
+    2,
+    27,
+    4001,
+    7005,
+    7010,
+    12004,
+    12006,
+    3001,
+    3003
 
-    ]
+]
 async function inner_loop(value,key,detectorid,config){
     console.log(Date.now()+': got client for table: '+key+', detector id: '+detectorid)
 
@@ -94,6 +98,8 @@ async function inner_loop(value,key,detectorid,config){
           +'.csv'
     const qclient = await pool.connect()
     const output = fs.createWriteStream(filename)
+
+    output.write(d3csv.csvFormatRows([keys])+'\n','utf8')
     return new Promise(function(resolve,reject){
         var stream = pipe_coarse_classifications(cf,qclient)
         stream.on('end', ()=>{
@@ -158,11 +164,16 @@ config_okay(config_file)
 
 
             for (const detectorid of task.signaturearchives.keys()) {
-                const tables_map = task.signaturearchives.get(detectorid)
 
                 console.log('outer loop, ',detectorid)
-                const blarg = await loop(tables_map,detectorid,config)
-                console.log( blarg, 'outer loop is done for ',detectorid)
+                if (done_detectors.indexOf(detectorid)===-1){
+
+
+                    const tables_map = task.signaturearchives.get(detectorid)
+
+                    const blarg = await loop(tables_map,detectorid,config)
+                    console.log( blarg, 'outer loop is done for ',detectorid)
+                }
             }
             // await Promise.all(test_promises)
             console.log('done')
