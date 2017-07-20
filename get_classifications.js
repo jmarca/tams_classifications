@@ -1,6 +1,11 @@
 const mylib = require('.')
-const get_coarse_classifications = mylib.get_coarse_classifications
+const pipe_coarse_classifications = mylib.pipe_coarse_classifications
+const classifier = require('./lib/classifier.js')
 const get_pool = require('psql_pooler').get_pool
+
+const stringify = require('csv-stringify')
+const JSONStream = require('JSONStream')
+
 const archive_tables = require('tams_archive_tables')
 const get_tables = archive_tables.get_tables
 const get_tables_for_detector = archive_tables.get_tables_for_detector
@@ -14,7 +19,6 @@ const csvFormatRows = d3csv.csvFormatRows
 const path    = require('path')
 const rootdir = path.normalize(__dirname)
 
-
 commander
     .version(require("./package.json").version)
     .usage("[options] [file]")
@@ -27,7 +31,7 @@ commander
 
 
 // const denodeify = require('denodeify')
-// const fs = require('fs')
+const fs = require('fs')
 // const readFile = denodeify(fs.readFile);
 // const writeFile = denodeify(fs.readFile);
 
@@ -52,50 +56,165 @@ const keys = [
     ,'calvad_class'
 ]
 
-function write_data(detectorid,value,dumpArray){
-    return new Promise( (resolve,reject) => {
-        const filename = output_path+'/'+ detectorid+'_'+value.mintime+'_'+value.maxtime+'.csv'
-        rw.writeFile(filename
-                     ,d3csv.csvFormatRows(dumpArray)
-                     ,function(e){
-                         if(e){
-                             console.log(e)
-                             return reject(e)
-                         }
-                         return resolve(filename)
-                     }
-                    )
-    })
-}
+const through = require('through2')
 
+const done_detectors = [
+
+  7005
+,  27
+,  4001
+,  2
+,  109
+,  7010
+,  10001
+,  10007
+,  1001
+,  107
+,  11005
+,  11009
+,  11011
+,  12003
+,  12004
+,  12006
+,  3001
+,  3003
+,  3006
+,  3007
+,  3008
+,  3009
+,  36
+,  38
+,  40
+,  6002
+,  4002
+,  4003
+,  4004
+,  7011
+,  4005
+,  4006
+,  4008
+,  4009
+,  4010
+,  4011
+,  46
+,  50
+,  5001
+,  5002
+,  7014
+,  5003
+,  5004
+,  5005
+,  5006
+,  6005
+,  6007
+,  63
+,  10003
+,  7006
+,  7007
+,  7009
+,  10005
+,  10002
+,  7012
+,  11001
+,  7013
+,  11002
+,  10006
+,  7015
+,  11003
+,  11010
+,  11007
+,  7016
+,  12002
+,  7018
+,  71
+,  75
+,  8001
+,  8002
+,  8003
+,  8004
+,  8005
+,  8006
+,  86
+,  98
+,  61
+,  30
+,  4007
+,  3002
+,  6001
+,  6003
+,  6004
+,  10004
+,  11006
+,  7004
+,  5
+,  7
+,  106
+,  37
+,  6006
+,  12001
+,  7001
+,  113
+,  62
+,  112
+,  454
+,  7003
+,  7002
+,  7008
+,  11004
+,  6008
+,  12005
+,  11008
+,  3004
+,  3005
+,  12007
+,  7017
+,  101
+,  26070
+,  30370
+,  10734
+,  25334
+,  24934
+,  29670
+,  999
+
+]
 async function inner_loop(value,key,detectorid,config){
-    const qclient = await pool.connect()
     console.log(Date.now()+': got client for table: '+key+', detector id: '+detectorid)
 
+    if (done_detectors.indexOf(detectorid) > -1){
+        return null
+    }
     const cf = Object.assign({},config)
     cf.signaturearchives={'archive_table':key}
     // ,'starttime':value.mintime
     // ,'endtime':value.maxtime}
     cf.detstaid = detectorid
-    const rows = await get_coarse_classifications(cf,qclient)
-    qclient.release()
-    console.log(Date.now()+': done query for table: '+key+', detector id: '+detectorid)
-    // rows is rows from db
-    var dumpArray = [keys]
+    const filename = output_path+'/'
+          + detectorid
+          +'_'+value.mintime
+          +'_'+value.maxtime
+          +'.csv'
+    const qclient = await pool.connect()
+    const output = fs.createWriteStream(filename)
 
-    rows.forEach( (r) =>{
-
-        const recArray = keys.map(function(key,i) {
-            return r[key]
-        })
-        dumpArray = dumpArray.concat([recArray])
-        return null
+    output.write(d3csv.csvFormatRows([keys])+'\n','utf8')
+    return new Promise(function(resolve,reject){
+        var stream = pipe_coarse_classifications(cf,qclient)
+        stream.on('end', ()=>{
+            console.log('end stream')
+            qclient.release()
+            })
+                .pipe(through.obj(function(chunk,enc,cb){
+                    const dump = d3csv.csvFormatRows([chunk]) + '\n'
+                    cb(null,dump)
+                }))
+                .pipe(output)
+                .on('finish',()=>{
+                    console.log('finish stream, '+Date.now()+': done query for table: '+key+', detector id: '+detectorid)
+                    resolve(filename)
+                })
 
     })
-    //console.log('dumparray is ',dumpArray)
-
-    const filename = await write_data(detectorid,value,dumpArray)
-    return filename
 }
 
 async function loop (tables_map, detectorid, config){
@@ -103,15 +222,20 @@ async function loop (tables_map, detectorid, config){
     const jobs = []
 
 
-    for (const key of tables_map.keys()) {
+    try{
+        for (const key of tables_map.keys()) {
         const value = tables_map.get(key)
 
         const blah = await inner_loop(value,key,detectorid,config)
         jobs.push(blah)
+        }
+
+    }catch(e){
+        console.log('caught')
+        throw e
     }
 
     return jobs
-
 
 }
 
@@ -138,11 +262,16 @@ config_okay(config_file)
 
 
             for (const detectorid of task.signaturearchives.keys()) {
-                const tables_map = task.signaturearchives.get(detectorid)
 
                 console.log('outer loop, ',detectorid)
-                const blarg = await loop(tables_map,detectorid,config)
-                console.log( blarg, 'outer loop is done for ',detectorid)
+                if (done_detectors.indexOf(detectorid)===-1){
+
+
+                    const tables_map = task.signaturearchives.get(detectorid)
+
+                    const blarg = await loop(tables_map,detectorid,config)
+                    console.log( blarg, 'outer loop is done for ',detectorid)
+                }
             }
             // await Promise.all(test_promises)
             console.log('done')
